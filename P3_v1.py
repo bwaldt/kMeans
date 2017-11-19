@@ -46,18 +46,18 @@ def seeding_kmeans_plusplus(clusters, batchSize,mat_full):
         c = np.where(cumSum >= r)[0][0]
         centers.append(c)
 #	print len(centers)
-    print centers
+    centers = mat[centers,:]
     return centers
     
 
-def kmeans(centers,mat_full,iterations,batchSize):
-    centerPoints = mat_full[centers,:]
+def kmeans(centerPoints,mat_full,iterations,batchSize):
+    numCenters = np.shape(centerPoints)[0]
     metrics = np.zeros((3,iterations))
     for i in range(iterations):
         users = np.shape(mat_full)[0]
 	samples = np.random.randint(users, size=batchSize)
         mat = mat_full[samples,:]
-	d = np.empty([np.shape(mat)[0], len(centers)])
+	d = np.empty([np.shape(mat)[0], numCenters])
 	d.fill(99999)
 	
 	# Calculate Distance of points to each Clusters
@@ -66,24 +66,25 @@ def kmeans(centers,mat_full,iterations,batchSize):
 
 	clusterAssignments = np.argmin(d , axis =1) # Assign Points to clusters
 
-	for cluster in range(len(centers)):
-    	    centerPoints[cluster,:] = np.mean(mat[np.where(clusterAssignments == cluster),:],axis=1) #update center
+	for cluster in range(numCenters):
+	    if cluster in clusterAssignments.tolist():
+    	        centerPoints[cluster,:] = np.mean(mat[np.where(clusterAssignments == cluster),:],axis=1) #update center
 
 	# Calculate Min/Max/Mean to new Clusters
-	newD = np.empty([np.shape(mat)[0], len(centers)])                          
-        newD.fill(99999)
+	#newD = np.empty([np.shape(mat)[0], len(centers)])                          
+        #newD.fill(99999)
         	
-        for idx in range(np.shape(centerPoints)[0]):
-            newD[:,idx] =  np.linalg.norm(centerPoints[idx,:] - mat,axis=1)**2
-	distances = np.min(newD,axis=1)
+        #for idx in range(np.shape(centerPoints)[0]):
+        #    newD[:,idx] =  np.linalg.norm(centerPoints[idx,:] - mat,axis=1)**2
+	distances = np.min(d,axis=1)
 	metrics[0,i] = np.mean(distances)
 	metrics[1,i] = np.amin(distances)
 	metrics[2,i] = np.amax(distances)
 
-    plotMetrics(metrics)
+    plotMetrics(metrics,numCenters)
 
 
-def plotMetrics(metrics):
+def plotMetrics(metrics,numCenters):
     length = np.shape(metrics)[1]
     x = np.linspace(0,length,length)
 
@@ -93,7 +94,8 @@ def plotMetrics(metrics):
     plt.legend(loc='best')
     plt.xlabel("Iterations")
     plt.ylabel("Distance")
-    plt.savefig("metrics.jpg")
+    plt.savefig("metrics" + str(numCenters) + ".jpg")
+    plt.close()
 
 
 
@@ -101,7 +103,9 @@ if __name__ == "__main__":
   # readInFile()
     
     mat_full = np.load('copy/mat.npy')
-    centers = seeding_kmeans_plusplus(4,300000,mat_full)
-    kmeans(centers,mat_full,10,300000)
+    numOfCenters = [5,50,100,200,300,400,500]
+    for k in numOfCenters:
+	centers = seeding_kmeans_plusplus(k,500000,mat_full)
+    	kmeans(centers,mat_full,100,500000)
 
 
